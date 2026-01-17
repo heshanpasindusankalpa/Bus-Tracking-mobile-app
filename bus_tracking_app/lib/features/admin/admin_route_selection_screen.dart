@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:bus_tracking_app/features/auth/auth_controller.dart';
 import 'package:bus_tracking_app/models/route.dart' as app_route;
+import 'package:bus_tracking_app/core/services/route_service.dart';
+import 'package:bus_tracking_app/features/admin/add_edit_route_screen.dart';
 
 class AdminRouteSelectionScreen extends StatefulWidget {
   const AdminRouteSelectionScreen({super.key});
@@ -12,48 +14,17 @@ class AdminRouteSelectionScreen extends StatefulWidget {
 
 class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
   final _authController = AuthController();
+  final _routeService = RouteService();
   final _searchController = TextEditingController();
   String _searchQuery = '';
-
-  // Mock data - will be replaced with Firebase data
-  final List<app_route.Route> _routes = [
-    app_route.Route(
-      id: '1',
-      routeNumber: '138',
-      name: 'Colombo - Malabe Express',
-      startLocation: 'Colombo Fort',
-      endLocation: 'Malabe',
-      distance: 15.5,
-      estimatedDuration: 45,
-      stopIds: [],
-    ),
-    app_route.Route(
-      id: '2',
-      routeNumber: '177',
-      name: 'Pettah - Kaduwela',
-      startLocation: 'Pettah',
-      endLocation: 'Kaduwela',
-      distance: 12.3,
-      estimatedDuration: 35,
-      stopIds: [],
-    ),
-    app_route.Route(
-      id: '3',
-      routeNumber: '155',
-      name: 'Colombo - Nugegoda',
-      startLocation: 'Colombo',
-      endLocation: 'Nugegoda',
-      distance: 8.2,
-      estimatedDuration: 25,
-      stopIds: [],
-    ),
-  ];
+  bool _isLoading = false;
+  List<app_route.Route> _allRoutes = [];
 
   List<app_route.Route> get _filteredRoutes {
     if (_searchQuery.isEmpty) {
-      return _routes;
+      return _allRoutes;
     }
-    return _routes.where((route) {
+    return _allRoutes.where((route) {
       return route.routeNumber.toLowerCase().contains(
             _searchQuery.toLowerCase(),
           ) ||
@@ -65,9 +36,87 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadRoutes();
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadRoutes() async {
+    setState(() => _isLoading = true);
+    try {
+      final routes = await _routeService.getAllRoutes();
+      if (mounted) {
+        setState(() {
+          _allRoutes = routes;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading routes: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteRoute(app_route.Route route) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Route?'),
+        content: Text(
+          'Are you sure you want to delete route ${route.routeNumber}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _routeService.deleteRoute(route.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Route ${route.routeNumber} deleted successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _loadRoutes();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting route: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   void _handleLogout() async {
@@ -85,24 +134,28 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
     }
   }
 
-  void _editRoute(app_route.Route route) {
-    // TODO: Navigate to edit route screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Edit Route: ${route.routeNumber}'),
-        duration: const Duration(seconds: 2),
+  void _editRoute(app_route.Route route) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddEditRouteScreen(route: route),
       ),
     );
+    if (result == true) {
+      _loadRoutes();
+    }
   }
 
-  void _addNewRoute() {
-    // TODO: Navigate to add route screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Add new route functionality coming soon'),
-        duration: Duration(seconds: 2),
+  void _addNewRoute() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AddEditRouteScreen(),
       ),
     );
+    if (result == true) {
+      _loadRoutes();
+    }
   }
 
   void _manageRoute(app_route.Route route) {
@@ -225,44 +278,51 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
           const SizedBox(height: 16),
           // Routes List
           Expanded(
-            child: _filteredRoutes.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.route_outlined,
-                          size: 80,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No routes found',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Add a new route to get started',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                      ],
-                    ),
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(),
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _filteredRoutes.length,
-                    itemBuilder: (context, index) {
-                      final route = _filteredRoutes[index];
-                      return _buildAdminRouteCard(route);
-                    },
-                  ),
+                : _filteredRoutes.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.route_outlined,
+                              size: 80,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No routes found',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Add a new route to get started',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async => _loadRoutes(),
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: _filteredRoutes.length,
+                          itemBuilder: (context, index) {
+                            final route = _filteredRoutes[index];
+                            return _buildAdminRouteCard(route);
+                          },
+                        ),
+                      ),
           ),
         ],
       ),
@@ -297,7 +357,9 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.orange.shade700,
+                      color: route.isActive
+                          ? Colors.orange.shade700
+                          : Colors.grey.shade400,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -315,6 +377,12 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
                     icon: Icon(Icons.edit, color: Colors.orange.shade700),
                     onPressed: () => _editRoute(route),
                     tooltip: 'Edit Route',
+                  ),
+                  // Delete Button
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _deleteRoute(route),
+                    tooltip: 'Delete Route',
                   ),
                 ],
               ),
@@ -402,6 +470,11 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
                     Icons.location_on,
                     '${route.stopIds.length}',
                     'Stops',
+                  ),
+                  _buildStatItem(
+                    route.isActive ? Icons.check_circle : Icons.cancel,
+                    route.isActive ? 'Active' : 'Inactive',
+                    'Status',
                   ),
                 ],
               ),
