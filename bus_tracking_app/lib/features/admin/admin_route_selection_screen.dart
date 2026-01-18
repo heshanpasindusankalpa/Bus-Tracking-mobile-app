@@ -359,7 +359,7 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
             children: [
               Row(
                 children: [
-                  // Route Number Badge
+                  // Route Name Badge
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -372,9 +372,9 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      route.routeNumber,
+                      route.name,
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
