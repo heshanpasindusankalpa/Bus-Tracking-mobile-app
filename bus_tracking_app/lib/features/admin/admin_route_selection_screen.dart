@@ -134,6 +134,10 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
     }
   }
 
+  void _openSettings() {
+    Navigator.of(context).pushNamed('/admin-dashboard');
+  }
+
   void _editRoute(app_route.Route route) async {
     final result = await Navigator.push<bool>(
       context,
@@ -181,6 +185,11 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white),
+            onPressed: _openSettings,
+            tooltip: 'Settings',
+          ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: _handleLogout,
