@@ -3,12 +3,15 @@ import 'package:bus_tracking_app/features/auth/login_screen.dart';
 import 'package:bus_tracking_app/features/auth/register_screen.dart';
 import 'package:bus_tracking_app/features/passenger\'/route_selection_screen.dart';
 import 'package:bus_tracking_app/features/admin/admin_route_selection_screen.dart';
+import 'package:bus_tracking_app/features/admin/admin_dashboard.dart';
+import 'package:bus_tracking_app/features/admin/manage_buses_screen.dart';
 
 class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String home = '/home';
   static const String adminDashboard = '/admin-dashboard';
+  static const String manageBuses = '/manage-buses';
   static const String routeSelection = '/route-selection';
   static const String adminRouteSelection = '/admin-route-selection';
   static const String busTracking = '/bus-tracking';
@@ -25,6 +28,14 @@ class AppRoutes {
       case adminRouteSelection:
         return MaterialPageRoute(
           builder: (_) => const AdminRouteSelectionScreen(),
+        );
+      case adminDashboard:
+        return MaterialPageRoute(
+          builder: (_) => const AdminDashboard(),
+        );
+      case manageBuses:
+        return MaterialPageRoute(
+          builder: (_) => const ManageBusesScreen(),
         );
       default:
         return MaterialPageRoute(
