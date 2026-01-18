@@ -14,7 +14,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.orange.shade700,
+        backgroundColor: Colors.blue.shade700,
         title: const Text(
           'Dashboard Overview',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
