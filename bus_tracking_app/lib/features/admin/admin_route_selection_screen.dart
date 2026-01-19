@@ -178,17 +178,18 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.blue.shade700,
+        elevation: 8,
+        backgroundColor: Color(0xFFd32f2f),
         title: const Text(
-          'Manage Routes',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          '🗺️ Manage Routes',
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 22),
         ),
+        centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white),
-            onPressed: _openSettings,
-            tooltip: 'Settings',
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadRoutes,
+            tooltip: 'Refresh',
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
@@ -196,6 +197,22 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
             tooltip: 'Logout',
           ),
         ],
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFd32f2f), Color(0xFF8b0000)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0xFFd32f2f).withOpacity(0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+        ),
       ),
       body: Column(
         children: [
@@ -203,11 +220,22 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.blue.shade700,
+              gradient: LinearGradient(
+                colors: [Color(0xFFd32f2f), Color(0xFF8b0000)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(30),
                 bottomRight: Radius.circular(30),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFFd32f2f).withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
             child: Column(
@@ -221,7 +249,7 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
                       child: Icon(
                         Icons.admin_panel_settings,
                         size: 35,
-                        color: Colors.blue.shade700,
+                        color: Color(0xFFd32f2f),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -337,7 +365,7 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addNewRoute,
-        backgroundColor: Colors.orange.shade700,
+        backgroundColor: Color(0xFFd32f2f),
         icon: const Icon(Icons.add),
         label: const Text('Add Route'),
       ),
@@ -367,7 +395,7 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: route.isActive
-                          ? Colors.blue.shade700
+                          ? Color(0xFFd32f2f)
                           : Colors.grey.shade400,
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -383,7 +411,7 @@ class _AdminRouteSelectionScreenState extends State<AdminRouteSelectionScreen> {
                   const Spacer(),
                   // Edit Button
                   IconButton(
-                    icon: Icon(Icons.edit, color: Colors.orange.shade700),
+                    icon: Icon(Icons.edit, color: Color(0xFFd32f2f)),
                     onPressed: () => _editRoute(route),
                     tooltip: 'Edit Route',
                   ),
