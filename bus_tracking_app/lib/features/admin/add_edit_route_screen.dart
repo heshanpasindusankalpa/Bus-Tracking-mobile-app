@@ -190,7 +190,7 @@ class _AddEditRouteScreenState extends State<AddEditRouteScreen> {
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.orange.shade700,
+        backgroundColor: Colors.red.shade700,
         title: Text(
           title,
           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
@@ -408,7 +408,7 @@ class _AddEditRouteScreenState extends State<AddEditRouteScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _saveRoute,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange.shade700,
+                    backgroundColor: Colors.red.shade700,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
