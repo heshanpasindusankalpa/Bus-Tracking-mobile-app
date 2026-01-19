@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bus_tracking_app/features/admin/admin_route_selection_screen.dart';
 import 'package:bus_tracking_app/core/services/firestore_service.dart';
+import 'package:bus_tracking_app/core/services/auth_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -27,54 +28,95 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Future<void> _loadDashboardData() async {
     try {
       // Fetch all buses
-      final allBuses = await _firestoreService.getBusesByCompany('');
-      
-      // Since getBusesByCompany requires a company name, let's fetch all buses directly
-      // We need to get all buses, so we'll count from routes
-      final buses = await _firestoreService.getBusesByCompany('');
+      final allBuses = await _firestoreService.getAllBuses();
+      print('✅ Total buses fetched: ${allBuses.length}');
       
       // Fetch all routes
       final routes = await _firestoreService.getAllRoutes();
+      print('✅ Total routes fetched: ${routes.length}');
+      
+      // Fetch all registered passengers
+      final passengers = await _firestoreService.getAllPassengers();
+      print('✅ Total registered passengers fetched: ${passengers.length}');
       
       setState(() {
-        // Count total buses - try to get all buses by fetching routes first
-        totalBuses = buses.isEmpty ? 0 : buses.length;
+        // Count total buses
+        totalBuses = allBuses.length;
         
-        // Count active buses (assume buses with status 'active')
-        activeBuses = buses.where((bus) => bus.isActive).length;
+        // Count active buses (all buses added to database)
+        activeBuses = allBuses.length;
         
         // Total routes
         totalRoutes = routes.length;
         
-        // Estimated passengers (can be enhanced based on your data model)
-        estimatedPassengers = totalRoutes * 30; // Example: 30 passengers per route
+        // Passengers count - actual registered users
+        estimatedPassengers = passengers.length;
         
         isLoading = false;
+        print('🔄 Dashboard updated - Total: $totalBuses, Active: $activeBuses, Routes: $totalRoutes, Passengers: $estimatedPassengers');
       });
     } catch (e) {
-      print('Error loading dashboard data: $e');
+      print('❌ Error loading dashboard data: $e');
       setState(() {
         isLoading = false;
       });
     }
   }
+
+  Future<void> _handleLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout?'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Logout', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await AuthService().signOut();
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error logging out: $e')),
+          );
+        }
+      }
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        elevation: 0,
+        elevation: 8,
         backgroundColor: Colors.transparent,
         title: const Text(
           'Admin Dashboard',
           style: TextStyle(
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w900,
             color: Colors.white,
-            fontSize: 24,
+            fontSize: 26,
+            letterSpacing: 0.5,
           ),
         ),
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -82,13 +124,29 @@ class _AdminDashboardState extends State<AdminDashboard> {
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withOpacity(0.25),
+              border: Border.all(color: Colors.white, width: 2),
             ),
             child: IconButton(
-              icon: const Icon(Icons.settings, color: Colors.white),
+              icon: const Icon(Icons.refresh, color: Colors.white, size: 20),
               onPressed: () {
-                Navigator.pushNamed(context, '/admin-route-selection');
+                setState(() {
+                  isLoading = true;
+                });
+                _loadDashboardData();
               },
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.25),
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white, size: 20),
+              onPressed: _handleLogout,
             ),
           ),
         ],
@@ -98,40 +156,46 @@ class _AdminDashboardState extends State<AdminDashboard> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF1e88e5),
-                Color(0xFF1565c0),
+                Color(0xFFd32f2f),
+                Color(0xFF8b0000),
               ],
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0xFFd32f2f).withOpacity(0.4),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
         ),
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+          padding: const EdgeInsets.fromLTRB(20, 32, 20, 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome Header
+              // Quick Stats Section
               Text(
-                'Welcome Back!',
+                '📊 Fleet Overview',
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade700,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.grey.shade800,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-              // Stats Grid
               isLoading
                   ? Center(
                       child: Padding(
                         padding: const EdgeInsets.all(32.0),
                         child: CircularProgressIndicator(
-                          strokeWidth: 3,
+                          strokeWidth: 4,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            Color(0xFF1e88e5),
+                            Color(0xFFd32f2f),
                           ),
                         ),
                       ),
@@ -144,34 +208,50 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       mainAxisSpacing: 16,
                       childAspectRatio: 0.95,
                       children: [
-                        _buildModernStatCard(
-                          icon: Icons.directions_bus,
-                          iconColor: Color(0xFF1e88e5),
-                          bgColor: Color(0xFF1e88e5).withOpacity(0.1),
+                        _buildPremiumStatCard(
+                          emoji: '🚌',
+                          iconColor: Color(0xFFd32f2f),
+                          bgGradient: LinearGradient(
+                            colors: [Color(0xFFd32f2f).withOpacity(0.15), Color(0xFFd32f2f).withOpacity(0.05)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           title: 'Total Fleet',
                           value: totalBuses.toString(),
                           context: context,
                         ),
-                        _buildModernStatCard(
-                          icon: Icons.check_circle,
+                        _buildPremiumStatCard(
+                          emoji: '✅',
                           iconColor: Color(0xFF43a047),
-                          bgColor: Color(0xFF43a047).withOpacity(0.1),
+                          bgGradient: LinearGradient(
+                            colors: [Color(0xFF43a047).withOpacity(0.15), Color(0xFF43a047).withOpacity(0.05)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           title: 'Active Buses',
                           value: activeBuses.toString(),
                           context: context,
                         ),
-                        _buildModernStatCard(
-                          icon: Icons.route,
-                          iconColor: Color(0xFF7e57c2),
-                          bgColor: Color(0xFF7e57c2).withOpacity(0.1),
-                          title: 'Total Routes',
+                        _buildPremiumStatCard(
+                          emoji: '🗺️',
+                          iconColor: Color(0xFFd32f2f),
+                          bgGradient: LinearGradient(
+                            colors: [Color(0xFFd32f2f).withOpacity(0.15), Color(0xFFd32f2f).withOpacity(0.05)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          title: 'Routes',
                           value: totalRoutes.toString(),
                           context: context,
                         ),
-                        _buildModernStatCard(
-                          icon: Icons.people_alt,
+                        _buildPremiumStatCard(
+                          emoji: '👥',
                           iconColor: Color(0xFFffa726),
-                          bgColor: Color(0xFFffa726).withOpacity(0.1),
+                          bgGradient: LinearGradient(
+                            colors: [Color(0xFFffa726).withOpacity(0.15), Color(0xFFffa726).withOpacity(0.05)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           title: 'Passengers',
                           value: estimatedPassengers > 999
                               ? '${(estimatedPassengers / 1000).toStringAsFixed(1)}k'
@@ -181,30 +261,28 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ],
                     ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
 
-              // Action Cards Section
+              // Action Cards Section with Creative Design
               Text(
-                'Quick Actions',
+                '⚡ Quick Actions',
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
                   color: Colors.grey.shade800,
                 ),
               ),
               const SizedBox(height: 16),
 
               // Register Bus Card
-              _buildActionCard(
-                icon: Icons.add_circle_outline,
-                iconColor: Color(0xFF1e88e5),
+              _buildPremiumActionCard(
+                icon: Icons.directions_bus_filled,
+                emoji: '🚐',
+                iconColor: Color(0xFFd32f2f),
                 title: 'Register New Bus',
-                subtitle: 'Add new buses to the fleet',
+                subtitle: 'Add buses to your fleet',
                 bgGradient: LinearGradient(
-                  colors: [
-                    Color(0xFF1e88e5).withOpacity(0.1),
-                    Color(0xFF1565c0).withOpacity(0.05),
-                  ],
+                  colors: [Color(0xFFd32f2f), Color(0xFF8b0000)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -216,16 +294,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
               const SizedBox(height: 12),
 
               // Manage Routes Card
-              _buildActionCard(
+              _buildPremiumActionCard(
                 icon: Icons.edit_location_alt,
-                iconColor: Color(0xFF7e57c2),
+                emoji: '🗺️',
+                iconColor: Color(0xFFd32f2f),
                 title: 'Manage Routes',
-                subtitle: 'Create, edit, or delete routes',
+                subtitle: 'Create & manage bus routes',
                 bgGradient: LinearGradient(
-                  colors: [
-                    Color(0xFF7e57c2).withOpacity(0.1),
-                    Color(0xFF6a1b9a).withOpacity(0.05),
-                  ],
+                  colors: [Color(0xFFd32f2f), Color(0xFF8b0000)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -304,6 +380,173 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumStatCard({
+    required String emoji,
+    required Color iconColor,
+    required Gradient bgGradient,
+    required String title,
+    required String value,
+    required BuildContext context,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: bgGradient,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: iconColor.withOpacity(0.2),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: iconColor.withOpacity(0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              emoji,
+              style: const TextStyle(fontSize: 28),
+            ),
+          ),
+          const Spacer(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumActionCard({
+    required IconData icon,
+    required String emoji,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required Gradient bgGradient,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        splashColor: Colors.white.withOpacity(0.2),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: bgGradient,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: iconColor.withOpacity(0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Text(
+                  emoji,
+                  style: const TextStyle(fontSize: 32),
+                ),
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white.withOpacity(0.85),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white.withOpacity(0.8),
+                  size: 18,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
