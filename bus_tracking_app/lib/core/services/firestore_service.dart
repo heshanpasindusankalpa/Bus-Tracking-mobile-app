@@ -69,6 +69,32 @@ class FirestoreService {
     }
   }
 
+  /// Get all users
+  Future<List<User>> getAllUsers() async {
+    try {
+      final querySnapshot = await _usersCollection.get();
+      return querySnapshot.docs
+          .map((doc) => User.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get all users: $e');
+    }
+  }
+
+  /// Get all passenger users
+  Future<List<User>> getAllPassengers() async {
+    try {
+      final querySnapshot = await _usersCollection
+          .where('userType', isEqualTo: 'passenger')
+          .get();
+      return querySnapshot.docs
+          .map((doc) => User.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get passengers: $e');
+    }
+  }
+
   // ========== BUS OPERATIONS ==========
 
   /// Create a new bus
@@ -104,6 +130,32 @@ class FirestoreService {
           .toList();
     } catch (e) {
       throw Exception('Failed to get buses: $e');
+    }
+  }
+
+  /// Get all buses
+  Future<List<Bus>> getAllBuses() async {
+    try {
+      final querySnapshot = await _busesCollection.get();
+      return querySnapshot.docs
+          .map((doc) => Bus.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get all buses: $e');
+    }
+  }
+
+  /// Get all active buses
+  Future<List<Bus>> getActiveBuses() async {
+    try {
+      final querySnapshot = await _busesCollection
+          .where('isActive', isEqualTo: true)
+          .get();
+      return querySnapshot.docs
+          .map((doc) => Bus.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get active buses: $e');
     }
   }
 
